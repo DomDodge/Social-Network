@@ -1,0 +1,76 @@
+<!doctype html>
+<html ng-app="socialApp">
+<head>
+  <meta charset="utf-8">
+  <title>Mini Social</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+  <script src="app.js"></script>
+</head>
+<body ng-controller="MainCtrl as vm">
+  <div class="container">
+    <h1>Mini Social</h1>
+
+    <section class="auth">
+      <h2>Sign up</h2>
+      <form ng-submit="vm.signup()">
+        <input type="text" ng-model="vm.signupData.username" placeholder="username" required>
+        <input type="email" ng-model="vm.signupData.email" placeholder="email" required>
+        <button type="submit">Sign up</button>
+      </form>
+
+      <h2>Login</h2>
+<form ng-submit="vm.login()">
+  <input type="text" ng-model="vm.loginData.username" placeholder="username" required>
+  <button type="submit">Login</button>
+</form>
+
+      <div ng-if="vm.user">
+        <p>Logged in as <strong>{{vm.user}}</strong></p>
+        <button ng-click="vm.logout()">Logout</button>
+      </div>
+    </section>
+
+    <section class="composer" ng-if="vm.user">
+      <h2>Compose</h2>
+      <form ng-submit="vm.createPost()">
+        <textarea ng-model="vm.newPost" placeholder="What's happening?" required></textarea>
+        <button type="submit">Post</button>
+      </form>
+    </section>
+
+    <section class="feed">
+      <h2>Your Feed</h2>
+      <button ng-click="vm.loadFeed()" ng-disabled="!vm.user">Refresh Feed</button>
+      <ul>
+        <li ng-repeat="post in vm.feed">
+          <div class="meta">
+            <strong>{{post.username}}</strong> <small>{{post.timestamp | date:'short'}}</small>
+          </div>
+          <div class="content">{{post.content}}</div>
+          <div class="actions">
+            <button ng-click="vm.like(post)">Like</button>
+            <button ng-click="vm.followUser(post.username)" ng-if="vm.user">Follow {{post.username}}</button>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <section class="all-posts">
+      <h2>All Posts</h2>
+      <button ng-click="vm.loadPosts()">Refresh</button>
+      <ul>
+        <li ng-repeat="post in vm.posts">
+          <div class="meta">
+            <strong>{{post.username}}</strong> <small>{{post.timestamp | date:'short'}}</small>
+          </div>
+          <div class="content">{{post.content}}</div>
+          <div class="actions">
+            <button ng-click="vm.like(post)">Like</button>
+          </div>
+        </li>
+      </ul>
+    </section>
+  </div>
+</body>
+</html>
