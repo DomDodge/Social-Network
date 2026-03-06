@@ -69,10 +69,55 @@ angular.module('socialApp', [])
 
   vm.like = function(post) {
     if (!vm.user) { alert('Login required'); return; }
-    $http.post(BASE + '/posts/' + post.id + '/like', { username: vm.user })
-      .then(function() {
-        // no-op; optimistic UI
+
+    // Check if the current user is already in the likes array
+    var hasLiked = post.likes && post.likes.includes(vm.user);
+    var method = hasLiked ? 'DELETE' : 'POST';
+
+    // We use the full $http config object here so we can specify POST or DELETE
+    $http({
+      method: method,
+      url: BASE + '/posts/' + post.id + '/like',
+      data: { username: vm.user },
+      headers: { 'Content-Type': 'application/json' }
+    }).then(function() {
+      // Optimistic UI: Update the array locally so the screen changes instantly 
+      // without needing to refresh the whole feed from the database
+      if (!post.likes) post.likes = [];
+      
+      if (hasLiked) {
+        // Remove the user from the likes array
+        post.likes = post.likes.filter(function(u) { return u !== vm.user; });
+      } else {
+        // Add the user to the likes array
+        post.likes.push(vm.user);
+      }
+    });
+  };
+
+  // Fetch comments for a specific post
+  vm.loadComments = function(post) {
+    $http.get(BASE + '/posts/' + post.id + '/comments')
+      .then(function(res) {
+        // Attach the comments array directly to the post object so Angular can render it
+        post.comments = res.data; 
       });
+  };
+
+  // Submit a new comment
+  vm.addComment = function(post) {
+    if (!vm.user || !post.newCommentText) {
+      alert('You must be logged in and write a comment!');
+      return; 
+    }
+    
+    $http.post(BASE + '/posts/' + post.id + '/comments', { 
+      username: vm.user, 
+      content: post.newCommentText 
+    }).then(function() {
+      post.newCommentText = ''; // Clear the input field after posting
+      vm.loadComments(post);    // Refresh the comments to show the new one
+    });
   };
 
   vm.followUser = function(username) {

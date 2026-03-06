@@ -22,10 +22,14 @@ class DB:
             return None
 
     def create_account(self, username, email, user_id):
-        with self._conn() as conn:
-            cur = conn.cursor()
-            cur.execute("INSERT INTO accounts (username, email, user_id) VALUES (?, ?, ?)",
-                        (username, email, user_id))
+        try:
+            with self._conn() as conn:
+                cur = conn.cursor()
+                cur.execute("INSERT INTO accounts (username, email, user_id) VALUES (?, ?, ?)",
+                            (username, email, user_id))
+                return True
+        except sqlite3.IntegrityError:
+            return False # Username is already taken
 
     def post(self, username, content):
         timestamp = datetime.now().isoformat()
@@ -39,6 +43,12 @@ class DB:
             cur = conn.cursor()
             cur.execute("DELETE FROM likes WHERE post_id=?", (id,))
             cur.execute("DELETE FROM post WHERE id=? AND username=?", (id, username))
+            
+    def comment_on_post(self, post_id, username, content):
+        timestamp = datetime.now().isoformat()
+        with self._conn() as conn:
+            cur = conn.cursor()
+            cur.execute("INSERT INTO comments (post_id, username, timestamp, content) VALUES (?, ?, ?, ?)", (post_id, username, timestamp, content))
 
     def like_post(self, id, username):
         with self._conn() as conn:
@@ -53,8 +63,15 @@ class DB:
     def get_all_posts(self):
         with self._conn() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT * FROM post")
-            return [dict(row) for row in cur.fetchall()]
+            # Added ORDER BY so all posts show newest first, just like the feed!
+            cur.execute("SELECT * FROM post ORDER BY timestamp DESC")
+            posts = [dict(row) for row in cur.fetchall()]
+            
+            # Inject the list of users who liked each post
+            for post in posts:
+                post['likes'] = self.get_likes_for_post(post['id'])
+                
+            return posts
 
     def get_feed(self, username):
         with self._conn() as conn:
@@ -65,7 +82,13 @@ class DB:
                 "WHERE follows.follower=? ORDER BY post.timestamp DESC",
                 (username,)
             )
-            return [dict(row) for row in cur.fetchall()]
+            posts = [dict(row) for row in cur.fetchall()]
+            
+            # Inject the list of users who liked each post
+            for post in posts:
+                post['likes'] = self.get_likes_for_post(post['id'])
+                
+            return posts
 
     def follow(self, user_follower, user_following):
         if user_follower == user_following:
@@ -107,4 +130,10 @@ class DB:
             cur = conn.cursor()
             cur.execute("SELECT username FROM likes WHERE post_id=?", (post_id,))
             return [r['username'] for r in cur.fetchall()]
+        
+    def get_comments_for_post(self, post_id):
+        with self._conn() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM comments WHERE post_id=? ORDER BY timestamp ASC", (post_id,))
+            return [dict(row) for row in cur.fetchall()]
 # ...existing code...
