@@ -12,6 +12,7 @@ def signup():
     data = request.get_json() or {}
     username = data.get('username')
     email = data.get('email')
+    
     if not username or not email:
         return jsonify({'error': 'username and email required'}), 400
 
@@ -19,7 +20,11 @@ def signup():
     if user_id is None:
         return jsonify({'error': 'email already exists'}), 409
 
-    db.create_account(username, email, user_id)
+    # Check if the username creation succeeded
+    account_created = db.create_account(username, email, user_id)
+    if not account_created:
+        return jsonify({'error': 'username already taken'}), 409
+
     return jsonify({'status': 'ok', 'user_id': user_id, 'username': username, 'email': email})
 
 @app.route('/login', methods=['POST'])
@@ -83,6 +88,23 @@ def follow_unfollow():
     else:
         db.unfollow(follower, following)
         return jsonify({'status': 'unfollowed'})
+    
+@app.route('/posts/<int:post_id>/comments', methods=['GET', 'POST'])
+def handle_comments(post_id):
+    if request.method == 'POST':
+        data = request.get_json() or {}
+        username = data.get('username')
+        content = data.get('content')
+        
+        if not username or not content:
+            return jsonify({'error': 'username and content required'}), 400
+            
+        db.comment_on_post(post_id, username, content)
+        return jsonify({'status': 'ok'})
+    else:
+        # It's a GET request
+        comments = db.get_comments_for_post(post_id)
+        return jsonify(comments)
 
 if __name__ == '__main__':
     # Run with: python backend/main.py

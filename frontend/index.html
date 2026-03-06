@@ -20,10 +20,10 @@
       </form>
 
       <h2>Login</h2>
-<form ng-submit="vm.login()">
-  <input type="text" ng-model="vm.loginData.username" placeholder="username" required>
-  <button type="submit">Login</button>
-</form>
+      <form ng-submit="vm.login()">
+        <input type="text" ng-model="vm.loginData.username" placeholder="username" required>
+        <button type="submit">Login</button>
+      </form>
 
       <div ng-if="vm.user">
         <p>Logged in as <strong>{{vm.user}}</strong></p>
@@ -48,9 +48,28 @@
             <strong>{{post.username}}</strong> <small>{{post.timestamp | date:'short'}}</small>
           </div>
           <div class="content">{{post.content}}</div>
+          
           <div class="actions">
-            <button ng-click="vm.like(post)">Like</button>
-            <button ng-click="vm.followUser(post.username)" ng-if="vm.user">Follow {{post.username}}</button>
+            <button ng-click="vm.like(post)">
+              <span ng-if="post.likes && post.likes.includes(vm.user)">Unlike</span>
+              <span ng-if="!post.likes || !post.likes.includes(vm.user)">Like</span>
+              ({{post.likes ? post.likes.length : 0}})
+            </button>
+          </div>
+
+          <div class="comments" style="margin-top: 10px; padding-left: 15px; border-left: 2px solid #ccc;">
+            <button ng-click="vm.loadComments(post)" ng-if="!post.comments">View Comments</button>
+            <div ng-if="post.comments">
+              <ul style="list-style-type: none; padding: 0;">
+                <li ng-repeat="comment in post.comments" style="font-size: 0.9em; margin-bottom: 5px;">
+                  <strong>{{comment.username}}</strong>: {{comment.content}}
+                </li>
+              </ul>
+              <form ng-submit="vm.addComment(post)" ng-if="vm.user" style="margin-top: 5px;">
+                <input type="text" ng-model="post.newCommentText" placeholder="Write a reply..." required>
+                <button type="submit">Reply</button>
+              </form>
+            </div>
           </div>
         </li>
       </ul>
@@ -65,8 +84,29 @@
             <strong>{{post.username}}</strong> <small>{{post.timestamp | date:'short'}}</small>
           </div>
           <div class="content">{{post.content}}</div>
+          
           <div class="actions">
-            <button ng-click="vm.like(post)">Like</button>
+            <button ng-click="vm.like(post)">
+              <span ng-if="post.likes && post.likes.includes(vm.user)">Unlike</span>
+              <span ng-if="!post.likes || !post.likes.includes(vm.user)">Like</span>
+              ({{post.likes ? post.likes.length : 0}})
+            </button>
+            <button ng-click="vm.followUser(post.username)" ng-if="vm.user && vm.user !== post.username">Follow {{post.username}}</button>
+          </div>
+
+          <div class="comments" style="margin-top: 10px; padding-left: 15px; border-left: 2px solid #ccc;">
+            <button ng-click="vm.loadComments(post)" ng-if="!post.comments">View Comments</button>
+            <div ng-if="post.comments">
+              <ul style="list-style-type: none; padding: 0;">
+                <li ng-repeat="comment in post.comments" style="font-size: 0.9em; margin-bottom: 5px;">
+                  <strong>{{comment.username}}</strong>: {{comment.content}}
+                </li>
+              </ul>
+              <form ng-submit="vm.addComment(post)" ng-if="vm.user" style="margin-top: 5px;">
+                <input type="text" ng-model="post.newCommentText" placeholder="Write a reply..." required>
+                <button type="submit">Reply</button>
+              </form>
+            </div>
           </div>
         </li>
       </ul>
