@@ -11,7 +11,7 @@
   <div class="container">
     <h1>Mini Social</h1>
 
-    <section class="auth">
+    <section class="auth" ng-if="!vm.user">
       <h2>Sign up</h2>
       <form ng-submit="vm.signup()">
         <input type="text" ng-model="vm.signupData.username" placeholder="username" required>
@@ -24,93 +24,95 @@
         <input type="text" ng-model="vm.loginData.username" placeholder="username" required>
         <button type="submit">Login</button>
       </form>
+    </section>
 
-      <div ng-if="vm.user">
+    <div class="content" ng-if="vm.user">
+      <div>
         <p>Logged in as <strong>{{vm.user}}</strong></p>
         <button ng-click="vm.logout()">Logout</button>
       </div>
-    </section>
 
-    <section class="composer" ng-if="vm.user">
-      <h2>Compose</h2>
-      <form ng-submit="vm.createPost()">
-        <textarea ng-model="vm.newPost" placeholder="What's happening?" required></textarea>
-        <button type="submit">Post</button>
-      </form>
-    </section>
+      <section class="composer" ng-if="vm.user">
+        <h2>Compose</h2>
+        <form ng-submit="vm.createPost()">
+          <textarea ng-model="vm.newPost" placeholder="What's happening?" required></textarea>
+          <button type="submit">Post</button>
+        </form>
+      </section>
 
-    <section class="feed">
-      <h2>Your Feed</h2>
-      <button ng-click="vm.loadFeed()" ng-disabled="!vm.user">Refresh Feed</button>
-      <ul>
-        <li ng-repeat="post in vm.feed">
-          <div class="meta">
-            <strong>{{post.username}}</strong> <small>{{post.timestamp | date:'short'}}</small>
-          </div>
-          <div class="content">{{post.content}}</div>
-          
-          <div class="actions">
-            <button ng-click="vm.like(post)">
-              <span ng-if="post.likes && post.likes.includes(vm.user)">Unlike</span>
-              <span ng-if="!post.likes || !post.likes.includes(vm.user)">Like</span>
-              ({{post.likes ? post.likes.length : 0}})
-            </button>
-          </div>
-
-          <div class="comments" style="margin-top: 10px; padding-left: 15px; border-left: 2px solid #ccc;">
-            <button ng-click="vm.loadComments(post)" ng-if="!post.comments">View Comments</button>
-            <div ng-if="post.comments">
-              <ul style="list-style-type: none; padding: 0;">
-                <li ng-repeat="comment in post.comments" style="font-size: 0.9em; margin-bottom: 5px;">
-                  <strong>{{comment.username}}</strong>: {{comment.content}}
-                </li>
-              </ul>
-              <form ng-submit="vm.addComment(post)" ng-if="vm.user" style="margin-top: 5px;">
-                <input type="text" ng-model="post.newCommentText" placeholder="Write a reply..." required>
-                <button type="submit">Reply</button>
-              </form>
+      <section class="feed">
+        <h2>Your Feed</h2>
+        <button ng-click="vm.loadFeed()" ng-disabled="!vm.user">Refresh Feed</button>
+        <ul>
+          <li ng-repeat="post in vm.feed">
+            <div class="meta">
+              <strong>{{post.username}}</strong> <small>{{post.timestamp | date:'short'}}</small>
             </div>
-          </div>
-        </li>
-      </ul>
-    </section>
-
-    <section class="all-posts">
-      <h2>All Posts</h2>
-      <button ng-click="vm.loadPosts()">Refresh</button>
-      <ul>
-        <li ng-repeat="post in vm.posts">
-          <div class="meta">
-            <strong>{{post.username}}</strong> <small>{{post.timestamp | date:'short'}}</small>
-          </div>
-          <div class="content">{{post.content}}</div>
-          
-          <div class="actions">
-            <button ng-click="vm.like(post)">
-              <span ng-if="post.likes && post.likes.includes(vm.user)">Unlike</span>
-              <span ng-if="!post.likes || !post.likes.includes(vm.user)">Like</span>
-              ({{post.likes ? post.likes.length : 0}})
-            </button>
-            <button ng-click="vm.followUser(post.username)" ng-if="vm.user && vm.user !== post.username">Follow {{post.username}}</button>
-          </div>
-
-          <div class="comments" style="margin-top: 10px; padding-left: 15px; border-left: 2px solid #ccc;">
-            <button ng-click="vm.loadComments(post)" ng-if="!post.comments">View Comments</button>
-            <div ng-if="post.comments">
-              <ul style="list-style-type: none; padding: 0;">
-                <li ng-repeat="comment in post.comments" style="font-size: 0.9em; margin-bottom: 5px;">
-                  <strong>{{comment.username}}</strong>: {{comment.content}}
-                </li>
-              </ul>
-              <form ng-submit="vm.addComment(post)" ng-if="vm.user" style="margin-top: 5px;">
-                <input type="text" ng-model="post.newCommentText" placeholder="Write a reply..." required>
-                <button type="submit">Reply</button>
-              </form>
+            <div class="content">{{post.content}}</div>
+            
+            <div class="actions">
+              <button ng-click="vm.like(post)">
+                <span ng-if="post.likes && post.likes.includes(vm.user)">Unlike</span>
+                <span ng-if="!post.likes || !post.likes.includes(vm.user)">Like</span>
+                ({{post.likes ? post.likes.length : 0}})
+              </button>
             </div>
-          </div>
-        </li>
-      </ul>
-    </section>
+
+            <div class="comments" style="margin-top: 10px; padding-left: 15px; border-left: 2px solid #ccc;">
+              <button ng-click="vm.loadComments(post)" ng-if="!post.comments">View Comments</button>
+              <div ng-if="post.comments">
+                <ul style="list-style-type: none; padding: 0;">
+                  <li ng-repeat="comment in post.comments" style="font-size: 0.9em; margin-bottom: 5px;">
+                    <strong>{{comment.username}}</strong>: {{comment.content}}
+                  </li>
+                </ul>
+                <form ng-submit="vm.addComment(post)" ng-if="vm.user" style="margin-top: 5px;">
+                  <input type="text" ng-model="post.newCommentText" placeholder="Write a reply..." required>
+                  <button type="submit">Reply</button>
+                </form>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <section class="all-posts">
+        <h2>All Posts</h2>
+        <button ng-click="vm.loadPosts()">Refresh</button>
+        <ul>
+          <li ng-repeat="post in vm.posts">
+            <div class="meta">
+              <strong>{{post.username}}</strong> <small>{{post.timestamp | date:'short'}}</small>
+            </div>
+            <div class="content">{{post.content}}</div>
+            
+            <div class="actions">
+              <button ng-click="vm.like(post)">
+                <span ng-if="post.likes && post.likes.includes(vm.user)">Unlike</span>
+                <span ng-if="!post.likes || !post.likes.includes(vm.user)">Like</span>
+                ({{post.likes ? post.likes.length : 0}})
+              </button>
+              <button ng-click="vm.followUser(post.username)" ng-if="vm.user && vm.user !== post.username">Follow {{post.username}}</button>
+            </div>
+
+            <div class="comments" style="margin-top: 10px; padding-left: 15px; border-left: 2px solid #ccc;">
+              <button ng-click="vm.loadComments(post)" ng-if="!post.comments">View Comments</button>
+              <div ng-if="post.comments">
+                <ul style="list-style-type: none; padding: 0;">
+                  <li ng-repeat="comment in post.comments" style="font-size: 0.9em; margin-bottom: 5px;">
+                    <strong>{{comment.username}}</strong>: {{comment.content}}
+                  </li>
+                </ul>
+                <form ng-submit="vm.addComment(post)" ng-if="vm.user" style="margin-top: 5px;">
+                  <input type="text" ng-model="post.newCommentText" placeholder="Write a reply..." required>
+                  <button type="submit">Reply</button>
+                </form>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </section>
+    </div>
   </div>
 </body>
 </html>

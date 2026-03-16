@@ -4,7 +4,17 @@ from flask_cors import CORS
 from database import DB
 
 app = Flask(__name__)
-CORS(app)
+# enable CORS for the frontend origin (development). Use "*" for all origins if you prefer.
+CORS(app, resources={r"/*": {"origins": "http://127.0.0.1:5500"}}, supports_credentials=True)
+
+# ensure preflight and responses always include the expected headers (dev helper)
+@app.after_request
+def add_cors_headers(response):
+    response.headers.setdefault('Access-Control-Allow-Origin', 'http://127.0.0.1:5500')
+    response.headers.setdefault('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
+    response.headers.setdefault('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    return response
+
 db = DB("database.db")
 
 @app.route('/signup', methods=['POST'])
