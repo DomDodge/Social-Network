@@ -147,6 +147,18 @@ class DB:
             cur = conn.cursor()
             cur.execute("DELETE FROM likes WHERE post_id=? AND username=?", (id, username))
 
+    def get_most_liked_posts_from_following(self, username):
+        with self._conn() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT p.id, p.timestamp, p.username, content, COUNT(l.username) AS likes FROM follows AS f JOIN likes AS l ON l.username = f.following JOIN post AS p ON p.id = l.post_id WHERE follower=? AND p.username NOT IN (SELECT following FROM follows WHERE follower=?) AND follower != p.username GROUP BY content", (username, username))
+            posts = [dict(row) for row in cur.fetchall()]
+            
+            for post in posts:
+                cur.execute("SELECT username FROM likes WHERE post_id=?", (post['id'],))
+                post['likes'] = [row['username'] for row in cur.fetchall()]
+                
+            return posts
+
     def get_all_posts(self):
         with self._conn() as conn:
             cur = conn.cursor()
