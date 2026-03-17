@@ -125,8 +125,11 @@ def handle_comments(post_id):
         
         if not username or not content:
             return jsonify({'error': 'username and content required'}), 400
-            
-        db.comment_on_post(post_id, username, content)
+
+        comment_created = db.comment_on_post(post_id, username, content)
+        if not comment_created:
+            return jsonify({'error': 'post not found'}), 404
+
         return jsonify({'status': 'ok'})
     else:
         # It's a GET request

@@ -40,6 +40,14 @@ class DB:
                     follower TEXT NOT NULL,
                     following TEXT NOT NULL
                 )""")
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS comments (
+                    id INTEGER PRIMARY KEY,
+                    post_id INTEGER NOT NULL,
+                    username TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    timestamp TEXT
+                )""")
             conn.commit()
 
             # helper to choose primary key column (id if present, otherwise rowid)
@@ -128,6 +136,19 @@ class DB:
             cur = conn.cursor()
             cur.execute("INSERT INTO post (username, timestamp, content) VALUES (?, ?, ?)",
                         (username, timestamp, content))
+
+    def comment_on_post(self, post_id, username, content):
+        timestamp = datetime.now().isoformat()
+        with self._conn() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT 1 FROM post WHERE id=?", (post_id,))
+            if not cur.fetchone():
+                return False
+            cur.execute(
+                "INSERT INTO comments (post_id, username, content, timestamp) VALUES (?, ?, ?, ?)",
+                (post_id, username, content, timestamp)
+            )
+            return True
 
     def like_post(self, id, username):
         # return True if like added, False if already liked

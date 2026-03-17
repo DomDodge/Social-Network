@@ -2,153 +2,245 @@
 <html ng-app="socialApp">
 <head>
   <meta charset="utf-8">
-  <title>Mini Social</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rush</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
   <script src="app.js"></script>
 </head>
 <body ng-controller="MainCtrl as vm">
-  <div class="container">
-    <h1>Mini Social</h1>
+  <div class="app-shell">
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+    <div class="container">
+      <header class="hero">
+        <div class="hero-copy">
+          <div class="logo-mark" aria-hidden="true">R</div>
+          <p class="eyebrow">College social, moving fast</p>
+          <h1>Rush</h1>
+          <p class="hero-text">The campus social app for snapshots of your day, quick updates, group energy, and what everyone is talking about right now.</p>
+        </div>
+        <div class="hero-badges" aria-hidden="true">
+          <span>Campus pulse</span>
+          <span>Quick replies</span>
+          <span>Fresh follows</span>
+        </div>
+      </header>
 
-    <section class="auth" ng-if="!vm.user">
-      <h2>Sign up</h2>
-      <form ng-submit="vm.signup()">
-        <input type="text" ng-model="vm.signupData.username" placeholder="username" required>
-        <input type="email" ng-model="vm.signupData.email" placeholder="email" required>
-        <button type="submit">Sign up</button>
-      </form>
+      <section class="auth-panel" ng-if="!vm.user">
+        <div class="panel intro-panel">
+          <h2>Built for campus life</h2>
+          <p>Share the moments between classes, find people in your orbit, and keep your feed full of real-time college energy.</p>
+          <div class="stats-row">
+            <div class="stat-chip">
+              <strong>24/7</strong>
+              <span>live feed vibes</span>
+            </div>
+            <div class="stat-chip">
+              <strong>Fast</strong>
+              <span>reply and react</span>
+            </div>
+            <div class="stat-chip">
+              <strong>Fresh</strong>
+              <span>recommended posts</span>
+            </div>
+          </div>
+        </div>
 
-      <h2>Login</h2>
-      <form ng-submit="vm.login()">
-        <input type="text" ng-model="vm.loginData.username" placeholder="username" required>
-        <button type="submit">Login</button>
-      </form>
-    </section>
+        <div class="panel auth">
+          <div class="auth-block">
+            <h2>Create account</h2>
+            <form ng-submit="vm.signup()" class="stack-form">
+              <input type="text" ng-model="vm.signupData.username" placeholder="username" required>
+              <input type="email" ng-model="vm.signupData.email" placeholder="email" required>
+              <button type="submit" class="primary-btn">Join Rush</button>
+            </form>
+          </div>
 
-    <div class="content" ng-if="vm.user">
-      <div>
-        <p>Logged in as <strong>{{vm.user}}</strong></p>
-        <button ng-click="vm.logout()">Logout</button>
+          <div class="auth-divider"><span>or</span></div>
+
+          <div class="auth-block">
+            <h2>Log in</h2>
+            <form ng-submit="vm.login()" class="stack-form">
+              <input type="text" ng-model="vm.loginData.username" placeholder="username" required>
+              <button type="submit" class="secondary-btn">Enter Rush</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <div class="content" ng-if="vm.user">
+        <div class="topbar panel">
+          <div>
+            <p class="status-label">Logged in</p>
+            <p class="status-user">@{{vm.user}}</p>
+          </div>
+          <button ng-click="vm.logout()" class="ghost-btn">Logout</button>
+        </div>
+
+        <section class="composer panel" ng-if="vm.user">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">Create</p>
+              <h2>Drop something new</h2>
+            </div>
+          </div>
+          <form ng-submit="vm.createPost()" class="composer-form">
+            <textarea ng-model="vm.newPost" placeholder="What's the move tonight?" required></textarea>
+            <div class="composer-actions">
+              <span>Keep it quick, fun, and campus-worthy.</span>
+              <button type="submit" class="primary-btn">Post to Rush</button>
+            </div>
+          </form>
+        </section>
+
+        <div class="grid-layout">
+          <section class="feed-stream panel">
+            <div class="section-heading">
+              <div>
+                <p class="section-kicker">Main feed</p>
+                <h2>Your Feed</h2>
+              </div>
+              <button ng-click="vm.loadFeed()" ng-disabled="!vm.user" class="ghost-btn">Refresh Feed</button>
+            </div>
+            <ul class="post-list">
+              <li ng-repeat="post in vm.feed" class="post-card">
+                <div class="meta">
+                  <div class="avatar-badge">{{(post.username || '?').charAt(0) | uppercase}}</div>
+                  <div>
+                    <strong>{{post.username}}</strong>
+                    <small>{{post.timestamp | date:'short'}}</small>
+                  </div>
+                </div>
+                <div class="post-content">{{post.content}}</div>
+
+                <div class="actions">
+                  <button ng-click="vm.like(post)" class="action-btn">
+                    <span ng-if="post.likes && post.likes.includes(vm.user)">Unlike</span>
+                    <span ng-if="!post.likes || !post.likes.includes(vm.user)">Like</span>
+                    <span class="count-pill">{{post.likes ? post.likes.length : 0}}</span>
+                  </button>
+                </div>
+
+                <div class="comments">
+                  <button ng-click="vm.loadComments(post)" ng-if="!post.comments" class="link-btn">View Comments</button>
+                  <div ng-if="post.comments">
+                    <ul class="comment-list">
+                      <li ng-repeat="comment in post.comments" class="comment-item">
+                        <strong>{{comment.username}}</strong>
+                        <span>{{comment.content}}</span>
+                      </li>
+                    </ul>
+                    <form ng-submit="vm.addComment(post)" ng-if="vm.user" class="comment-form">
+                      <input type="text" ng-model="post.newCommentText" placeholder="Write a reply..." required>
+                      <button type="submit" class="secondary-btn small-btn">Reply</button>
+                    </form>
+                  </div>
+                </div>
+              </li>
+            </ul>
+          </section>
+
+          <aside class="side-column">
+            <section class="recommendations panel">
+              <div class="section-heading">
+                <div>
+                  <p class="section-kicker">Discover</p>
+                  <h2>Recommended for You</h2>
+                </div>
+                <button ng-click="vm.loadRecommendations()" ng-disabled="!vm.user" class="ghost-btn">Refresh</button>
+              </div>
+              <ul class="post-list compact-list">
+                <li ng-repeat="post in vm.recommendations" class="post-card compact-card">
+                  <div class="meta">
+                    <div class="avatar-badge">{{(post.username || '?').charAt(0) | uppercase}}</div>
+                    <div>
+                      <strong>{{post.username}}</strong>
+                      <small>{{post.timestamp | date:'short'}}</small>
+                    </div>
+                  </div>
+                  <div class="post-content">{{post.content}}</div>
+
+                  <div class="actions split-actions">
+                    <button ng-click="vm.like(post)" class="action-btn">
+                      <span ng-if="post.likes && post.likes.includes(vm.user)">Unlike</span>
+                      <span ng-if="!post.likes || !post.likes.includes(vm.user)">Like</span>
+                      <span class="count-pill">{{post.likes ? post.likes.length : 0}}</span>
+                    </button>
+                    <button ng-click="vm.followUser(post.username)" ng-if="vm.user && vm.user !== post.username" class="secondary-btn small-btn">Follow</button>
+                  </div>
+
+                  <div class="comments">
+                    <button ng-click="vm.loadComments(post)" ng-if="!post.comments" class="link-btn">View Comments</button>
+                    <div ng-if="post.comments">
+                      <ul class="comment-list">
+                        <li ng-repeat="comment in post.comments" class="comment-item">
+                          <strong>{{comment.username}}</strong>
+                          <span>{{comment.content}}</span>
+                        </li>
+                      </ul>
+                      <form ng-submit="vm.addComment(post)" ng-if="vm.user" class="comment-form">
+                        <input type="text" ng-model="post.newCommentText" placeholder="Write a reply..." required>
+                        <button type="submit" class="secondary-btn small-btn">Reply</button>
+                      </form>
+                    </div>
+                  </div>
+                </li>
+              </ul>
+            </section>
+
+            <section class="all-posts panel">
+              <div class="section-heading">
+                <div>
+                  <p class="section-kicker">Explore</p>
+                  <h2>All Posts</h2>
+                </div>
+                <button ng-click="vm.loadPosts()" class="ghost-btn">Refresh</button>
+              </div>
+              <ul class="post-list compact-list">
+                <li ng-repeat="post in vm.posts" class="post-card compact-card">
+                  <div class="meta">
+                    <div class="avatar-badge">{{(post.username || '?').charAt(0) | uppercase}}</div>
+                    <div>
+                      <strong>{{post.username}}</strong>
+                      <small>{{post.timestamp | date:'short'}}</small>
+                    </div>
+                  </div>
+                  <div class="post-content">{{post.content}}</div>
+
+                  <div class="actions split-actions">
+                    <button ng-click="vm.like(post)" class="action-btn">
+                      <span ng-if="post.likes && post.likes.includes(vm.user)">Unlike</span>
+                      <span ng-if="!post.likes || !post.likes.includes(vm.user)">Like</span>
+                      <span class="count-pill">{{post.likes ? post.likes.length : 0}}</span>
+                    </button>
+                    <button ng-click="vm.followUser(post.username)" ng-if="vm.user && vm.user !== post.username" class="secondary-btn small-btn">Follow</button>
+                  </div>
+
+                  <div class="comments">
+                    <button ng-click="vm.loadComments(post)" ng-if="!post.comments" class="link-btn">View Comments</button>
+                    <div ng-if="post.comments">
+                      <ul class="comment-list">
+                        <li ng-repeat="comment in post.comments" class="comment-item">
+                          <strong>{{comment.username}}</strong>
+                          <span>{{comment.content}}</span>
+                        </li>
+                      </ul>
+                      <form ng-submit="vm.addComment(post)" ng-if="vm.user" class="comment-form">
+                        <input type="text" ng-model="post.newCommentText" placeholder="Write a reply..." required>
+                        <button type="submit" class="secondary-btn small-btn">Reply</button>
+                      </form>
+                    </div>
+                  </div>
+                </li>
+              </ul>
+            </section>
+          </aside>
+        </div>
       </div>
-
-      <section class="composer" ng-if="vm.user">
-        <h2>Compose</h2>
-        <form ng-submit="vm.createPost()">
-          <textarea ng-model="vm.newPost" placeholder="What's happening?" required></textarea>
-          <button type="submit">Post</button>
-        </form>
-      </section>
-
-      <section class="feed">
-        <h2>Your Feed</h2>
-        <button ng-click="vm.loadFeed()" ng-disabled="!vm.user">Refresh Feed</button>
-        <ul>
-          <li ng-repeat="post in vm.feed">
-            <div class="meta">
-              <strong>{{post.username}}</strong> <small>{{post.timestamp | date:'short'}}</small>
-            </div>
-            <div class="content">{{post.content}}</div>
-            
-            <div class="actions">
-              <button ng-click="vm.like(post)">
-                <span ng-if="post.likes && post.likes.includes(vm.user)">Unlike</span>
-                <span ng-if="!post.likes || !post.likes.includes(vm.user)">Like</span>
-                ({{post.likes ? post.likes.length : 0}})
-              </button>
-            </div>
-
-            <div class="comments" style="margin-top: 10px; padding-left: 15px; border-left: 2px solid #ccc;">
-              <button ng-click="vm.loadComments(post)" ng-if="!post.comments">View Comments</button>
-              <div ng-if="post.comments">
-                <ul style="list-style-type: none; padding: 0;">
-                  <li ng-repeat="comment in post.comments" style="font-size: 0.9em; margin-bottom: 5px;">
-                    <strong>{{comment.username}}</strong>: {{comment.content}}
-                  </li>
-                </ul>
-                <form ng-submit="vm.addComment(post)" ng-if="vm.user" style="margin-top: 5px;">
-                  <input type="text" ng-model="post.newCommentText" placeholder="Write a reply..." required>
-                  <button type="submit">Reply</button>
-                </form>
-              </div>
-            </div>
-          </li>
-        </ul>
-      </section>
-
-      <section class="recommendations">
-        <h2>Recommended for You</h2>
-        <button ng-click="vm.loadRecommendations()" ng-disabled="!vm.user">Refresh</button>
-        <ul>
-          <li ng-repeat="post in vm.recommendations">
-            <div class="meta">
-              <strong>{{post.username}}</strong> <small>{{post.timestamp | date:'short'}}</small>
-            </div>
-            <div class="content">{{post.content}}</div>
-            
-            <div class="actions">
-              <button ng-click="vm.like(post)">
-                <span ng-if="post.likes && post.likes.includes(vm.user)">Unlike</span>
-                <span ng-if="!post.likes || !post.likes.includes(vm.user)">Like</span>
-                ({{post.likes ? post.likes.length : 0}})
-              </button>
-              <button ng-click="vm.followUser(post.username)" ng-if="vm.user && vm.user !== post.username">Follow {{post.username}}</button>
-            </div>
-
-            <div class="comments" style="margin-top: 10px; padding-left: 15px; border-left: 2px solid #ccc;">
-              <button ng-click="vm.loadComments(post)" ng-if="!post.comments">View Comments</button>
-              <div ng-if="post.comments">
-                <ul style="list-style-type: none; padding: 0;">
-                  <li ng-repeat="comment in post.comments" style="font-size: 0.9em; margin-bottom: 5px;">
-                    <strong>{{comment.username}}</strong>: {{comment.content}}
-                  </li>
-                </ul>
-                <form ng-submit="vm.addComment(post)" ng-if="vm.user" style="margin-top: 5px;">
-                  <input type="text" ng-model="post.newCommentText" placeholder="Write a reply..." required>
-                  <button type="submit">Reply</button>
-                </form>
-              </div>
-            </div>
-          </li>
-        </ul>
-      </section>
-
-      <section class="all-posts">
-        <h2>All Posts</h2>
-        <button ng-click="vm.loadPosts()">Refresh</button>
-        <ul>
-          <li ng-repeat="post in vm.posts">
-            <div class="meta">
-              <strong>{{post.username}}</strong> <small>{{post.timestamp | date:'short'}}</small>
-            </div>
-            <div class="content">{{post.content}}</div>
-            
-            <div class="actions">
-              <button ng-click="vm.like(post)">
-                <span ng-if="post.likes && post.likes.includes(vm.user)">Unlike</span>
-                <span ng-if="!post.likes || !post.likes.includes(vm.user)">Like</span>
-                ({{post.likes ? post.likes.length : 0}})
-              </button>
-              <button ng-click="vm.followUser(post.username)" ng-if="vm.user && vm.user !== post.username">Follow {{post.username}}</button>
-            </div>
-
-            <div class="comments" style="margin-top: 10px; padding-left: 15px; border-left: 2px solid #ccc;">
-              <button ng-click="vm.loadComments(post)" ng-if="!post.comments">View Comments</button>
-              <div ng-if="post.comments">
-                <ul style="list-style-type: none; padding: 0;">
-                  <li ng-repeat="comment in post.comments" style="font-size: 0.9em; margin-bottom: 5px;">
-                    <strong>{{comment.username}}</strong>: {{comment.content}}
-                  </li>
-                </ul>
-                <form ng-submit="vm.addComment(post)" ng-if="vm.user" style="margin-top: 5px;">
-                  <input type="text" ng-model="post.newCommentText" placeholder="Write a reply..." required>
-                  <button type="submit">Reply</button>
-                </form>
-              </div>
-            </div>
-          </li>
-        </ul>
-      </section>
     </div>
   </div>
 </body>
