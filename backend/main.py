@@ -97,6 +97,10 @@ def like_unlike(post_id):
 def feed(username):
     return jsonify(db.get_feed(username))
 
+@app.route('/recommendations/<username>', methods=['GET'])
+def recommendations(username):
+    return jsonify(db.get_most_liked_posts_from_following(username))
+
 @app.route('/follow', methods=['POST', 'DELETE'])
 def follow_unfollow():
     data = request.get_json() or {}

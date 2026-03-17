@@ -10,6 +10,7 @@ angular.module('socialApp', [])
   vm.newPost = '';
   vm.posts = [];
   vm.feed = [];
+  vm.recommendations = [];
 
   vm.signup = function() {
     $http.post(BASE + '/signup', vm.signupData)
@@ -18,6 +19,7 @@ angular.module('socialApp', [])
         vm.signupData = {};
         vm.loadPosts();
         vm.loadFeed();
+        vm.loadRecommendations();
       }, function(err) {
         alert(err.data && err.data.error ? err.data.error : 'Signup failed');
       });
@@ -34,6 +36,7 @@ angular.module('socialApp', [])
         }
         vm.loginData = {};
         vm.loadFeed();
+        vm.loadRecommendations();
       }, function(err) {
         alert(err.data && err.data.error ? err.data.error : 'Login failed');
       });
@@ -42,6 +45,7 @@ angular.module('socialApp', [])
   vm.logout = function() {
     vm.user = null;
     vm.feed = [];
+    vm.recommendations = [];
   };
 
   vm.createPost = function() {
@@ -104,6 +108,13 @@ angular.module('socialApp', [])
       });
   };
 
+  vm.loadRecommendations = function() {
+    if (!vm.user) return;
+    $http.get(BASE + '/recommendations/' + vm.user).then(function(res) {
+      vm.recommendations = res.data;
+    });
+  };
+
   // Submit a new comment
   vm.addComment = function(post) {
     if (!vm.user || !post.newCommentText) {
@@ -125,6 +136,7 @@ angular.module('socialApp', [])
     $http.post(BASE + '/follow', { follower: vm.user, following: username })
       .then(function() {
         vm.loadFeed();
+        vm.loadRecommendations();
       });
   };
 
