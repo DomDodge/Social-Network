@@ -17,6 +17,17 @@ conn = sqlite3.connect(DB_PATH)
 cur = conn.cursor()
 
 try:
+    print("Ensuring comments table exists...")
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS comments (
+            id INTEGER PRIMARY KEY,
+            post_id INTEGER NOT NULL,
+            username TEXT NOT NULL,
+            content TEXT NOT NULL,
+            timestamp TEXT
+        )
+    """)
+
     # Likes
     pk = primary_key_column(cur, "likes")
     print(f"Cleaning duplicate likes using {pk} (keep lowest)...")
