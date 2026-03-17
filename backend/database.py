@@ -1,14 +1,101 @@
-# ...existing code...
 import sqlite3
 from datetime import datetime
 
 class DB:
     def __init__(self, dbfilename):
         self.dbfilename = dbfilename
+        # ensure schema + unique indexes; remove duplicates if present
+        with self._conn() as conn:
+            cur = conn.cursor()
+
+            # create tables if they don't exist (no-op if they do)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY,
+                    email TEXT UNIQUE NOT NULL
+                )""")
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS accounts (
+                    id INTEGER PRIMARY KEY,
+                    username TEXT UNIQUE NOT NULL,
+                    email TEXT NOT NULL,
+                    user_id INTEGER
+                )""")
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS post (
+                    id INTEGER PRIMARY KEY,
+                    username TEXT NOT NULL,
+                    timestamp TEXT,
+                    content TEXT
+                )""")
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS likes (
+                    id INTEGER PRIMARY KEY,
+                    username TEXT NOT NULL,
+                    post_id INTEGER NOT NULL
+                )""")
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS follows (
+                    id INTEGER PRIMARY KEY,
+                    follower TEXT NOT NULL,
+                    following TEXT NOT NULL
+                )""")
+            conn.commit()
+
+            # helper to choose primary key column (id if present, otherwise rowid)
+            def primary_key_column(cur, table):
+                cur.execute(f"PRAGMA table_info({table})")
+                cols = [r[1] for r in cur.fetchall()]
+                return "id" if "id" in cols else "rowid"
+
+            # remove duplicates (keep the lowest pk / rowid) before creating unique indexes
+            try:
+                for table, group_cols in [
+                    ("likes", "username, post_id"),
+                    ("follows", "follower, following"),
+                    ("accounts", "username")
+                ]:
+                    pk = primary_key_column(cur, table)
+                    cur.execute(f"""
+                        DELETE FROM {table}
+                        WHERE {pk} NOT IN (
+                            SELECT MIN({pk}) FROM {table} GROUP BY {group_cols}
+                        )
+                    """)
+                conn.commit()
+            except Exception:
+                # if table doesn't exist or other issue, continue to index creation attempt
+                conn.rollback()
+
+            # create unique indexes (duplicates should be gone); wrap to handle any remaining integrity issues
+            try:
+                cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_username ON accounts(username)")
+                cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_likes_unique ON likes(username, post_id)")
+                cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_follows_unique ON follows(follower, following)")
+                conn.commit()
+            except sqlite3.IntegrityError:
+                # last-resort: try dedupe again then retry creating indexes
+                conn.rollback()
+                for table, group_cols in [
+                    ("likes", "username, post_id"),
+                    ("follows", "follower, following"),
+                    ("accounts", "username")
+                ]:
+                    pk = primary_key_column(cur, table)
+                    cur.execute(f"""
+                        DELETE FROM {table}
+                        WHERE {pk} NOT IN (
+                            SELECT MIN({pk}) FROM {table} GROUP BY {group_cols}
+                        )
+                    """)
+                conn.commit()
+                cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_username ON accounts(username)")
+                cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_likes_unique ON likes(username, post_id)")
+                cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_follows_unique ON follows(follower, following)")
+                conn.commit()
 
     def _conn(self):
-        # create a new connection for each call so SQLite objects aren't shared across threads
-        conn = sqlite3.connect(self.dbfilename, check_same_thread=False)
+        conn = sqlite3.connect(self.dbfilename)
         conn.row_factory = sqlite3.Row
         return conn
 
@@ -22,14 +109,18 @@ class DB:
             return None
 
     def create_account(self, username, email, user_id):
-        try:
-            with self._conn() as conn:
-                cur = conn.cursor()
+        # return True if created, False if username already exists
+        with self._conn() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT 1 FROM accounts WHERE username=?", (username,))
+            if cur.fetchone():
+                return False
+            try:
                 cur.execute("INSERT INTO accounts (username, email, user_id) VALUES (?, ?, ?)",
                             (username, email, user_id))
                 return True
-        except sqlite3.IntegrityError:
-            return False # Username is already taken
+            except sqlite3.IntegrityError:
+                return False
 
     def post(self, username, content):
         timestamp = datetime.now().isoformat()
@@ -38,22 +129,18 @@ class DB:
             cur.execute("INSERT INTO post (username, timestamp, content) VALUES (?, ?, ?)",
                         (username, timestamp, content))
 
-    def delete_post(self, id, username):
-        with self._conn() as conn:
-            cur = conn.cursor()
-            cur.execute("DELETE FROM likes WHERE post_id=?", (id,))
-            cur.execute("DELETE FROM post WHERE id=? AND username=?", (id, username))
-            
-    def comment_on_post(self, post_id, username, content):
-        timestamp = datetime.now().isoformat()
-        with self._conn() as conn:
-            cur = conn.cursor()
-            cur.execute("INSERT INTO comments (post_id, username, timestamp, content) VALUES (?, ?, ?, ?)", (post_id, username, timestamp, content))
-
     def like_post(self, id, username):
+        # return True if like added, False if already liked
         with self._conn() as conn:
             cur = conn.cursor()
-            cur.execute("INSERT OR IGNORE INTO likes (username, post_id) VALUES (?, ?)", (username, id))
+            cur.execute("SELECT 1 FROM likes WHERE username=? AND post_id=?", (username, id))
+            if cur.fetchone():
+                return False
+            try:
+                cur.execute("INSERT INTO likes (username, post_id) VALUES (?, ?)", (username, id))
+                return True
+            except sqlite3.IntegrityError:
+                return False
 
     def unlike_post(self, id, username):
         with self._conn() as conn:
@@ -63,15 +150,13 @@ class DB:
     def get_all_posts(self):
         with self._conn() as conn:
             cur = conn.cursor()
-            # Added ORDER BY so all posts show newest first, just like the feed!
             cur.execute("SELECT * FROM post ORDER BY timestamp DESC")
-            posts = [dict(row) for row in cur.fetchall()]
-            
-            # Inject the list of users who liked each post
-            for post in posts:
-                post['likes'] = self.get_likes_for_post(post['id'])
-                
-            return posts
+            rows = [dict(r) for r in cur.fetchall()]
+            # attach likes to each post for frontend convenience
+            for p in rows:
+                cur.execute("SELECT username FROM likes WHERE post_id=?", (p['id'],))
+                p['likes'] = [r['username'] for r in cur.fetchall()]
+            return rows
 
     def get_feed(self, username):
         with self._conn() as conn:
@@ -82,21 +167,27 @@ class DB:
                 "WHERE follows.follower=? ORDER BY post.timestamp DESC",
                 (username,)
             )
-            posts = [dict(row) for row in cur.fetchall()]
-            
-            # Inject the list of users who liked each post
-            for post in posts:
-                post['likes'] = self.get_likes_for_post(post['id'])
-                
-            return posts
+            rows = [dict(r) for r in cur.fetchall()]
+            for p in rows:
+                cur.execute("SELECT username FROM likes WHERE post_id=?", (p['id'],))
+                p['likes'] = [r['username'] for r in cur.fetchall()]
+            return rows
 
     def follow(self, user_follower, user_following):
+        # return True if followed, False if already following or same user
         if user_follower == user_following:
-            return None
+            return False
         with self._conn() as conn:
             cur = conn.cursor()
-            cur.execute("INSERT OR IGNORE INTO follows (follower, following) VALUES (?, ?)",
-                        (user_follower, user_following))
+            cur.execute("SELECT 1 FROM follows WHERE follower=? AND following=?", (user_follower, user_following))
+            if cur.fetchone():
+                return False
+            try:
+                cur.execute("INSERT INTO follows (follower, following) VALUES (?, ?)",
+                            (user_follower, user_following))
+                return True
+            except sqlite3.IntegrityError:
+                return False
 
     def unfollow(self, user_follower, user_following):
         with self._conn() as conn:
@@ -136,4 +227,3 @@ class DB:
             cur = conn.cursor()
             cur.execute("SELECT * FROM comments WHERE post_id=? ORDER BY timestamp ASC", (post_id,))
             return [dict(row) for row in cur.fetchall()]
-# ...existing code...

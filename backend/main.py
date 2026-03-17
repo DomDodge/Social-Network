@@ -1,16 +1,24 @@
-# ...existing code...
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS
 from database import DB
 
 app = Flask(__name__)
-# enable CORS for the frontend origin (development). Use "*" for all origins if you prefer.
-CORS(app, resources={r"/*": {"origins": "http://127.0.0.1:5500"}}, supports_credentials=True)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
-# ensure preflight and responses always include the expected headers (dev helper)
+# ensure OPTIONS (preflight) always returns proper CORS headers
+@app.before_request
+def handle_options():
+    if request.method == 'OPTIONS':
+        resp = make_response()
+        resp.headers['Access-Control-Allow-Origin'] = '*'
+        resp.headers['Access-Control-Allow-Methods'] = 'GET,POST,PUT,DELETE,OPTIONS'
+        resp.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
+        return resp
+
 @app.after_request
 def add_cors_headers(response):
-    response.headers.setdefault('Access-Control-Allow-Origin', 'http://127.0.0.1:5500')
+    # ensure all responses include CORS headers (development)
+    response.headers.setdefault('Access-Control-Allow-Origin', '*')
     response.headers.setdefault('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
     response.headers.setdefault('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     return response
@@ -19,23 +27,28 @@ db = DB("database.db")
 
 @app.route('/signup', methods=['POST'])
 def signup():
-    data = request.get_json() or {}
-    username = data.get('username')
-    email = data.get('email')
-    
-    if not username or not email:
-        return jsonify({'error': 'username and email required'}), 400
+    try:
+        data = request.get_json() or {}
 
-    user_id = db.create_user(email)
-    if user_id is None:
-        return jsonify({'error': 'email already exists'}), 409
+        username = data.get('username')
+        email = data.get('email')
+        
+        if not username or not email:
+            return jsonify({'error': 'username and email required'}), 400
 
-    # Check if the username creation succeeded
-    account_created = db.create_account(username, email, user_id)
-    if not account_created:
-        return jsonify({'error': 'username already taken'}), 409
+        user_id = db.create_user(email)
+        if user_id is None:
+            return jsonify({'error': 'email already exists'}), 409
 
-    return jsonify({'status': 'ok', 'user_id': user_id, 'username': username, 'email': email})
+        # Check if the username creation succeeded
+        account_created = db.create_account(username, email, user_id)
+        if not account_created:
+            return jsonify({'error': 'username already taken'}), 409
+
+        return jsonify({'status': 'ok', 'user_id': user_id, 'username': username, 'email': email})
+    except Exception as e:
+        print(f"CRITICAL ERROR: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/login', methods=['POST'])
 def login():
